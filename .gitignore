@@ -1,0 +1,200 @@
+# ============================================================
+# Root .gitignore for VoxVertex Monorepo
+# Single file covering all apps (frontend, backend, etc.)
+# ============================================================
+
+# ============================================================
+# Dependencies
+# ============================================================
+node_modules/
+**/node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ============================================================
+# Environment Variables (NEVER COMMIT SECRETS!)
+# ============================================================
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+**/.env.local
+**/env.local.dev
+**/env.local.prod
+# Allow .env.example files for documentation
+!.env.example
+!**/.env.example
+
+# ============================================================
+# Build Outputs
+# ============================================================
+dist/
+build/
+out/
+.next/
+.next/*
+.next/cache/
+*.tsbuildinfo
+
+# ============================================================
+# Logs
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================
+# Runtime & Cache
+# ============================================================
+.cache/
+.parcel-cache/
+.npm/
+.eslintcache
+.vercel/
+.aws-sam/
+
+# ============================================================
+# Temporary Files
+# ============================================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ============================================================
+# OS Files
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ============================================================
+# IDE & Editor Files
+# ============================================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.project
+.classpath
+.settings/
+
+# ============================================================
+# Testing & Coverage
+# ============================================================
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# ============================================================
+# AWS & Infrastructure
+# ============================================================
+# Terraform
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+.terraform.lock.hcl.backup
+
+# AWS CDK
+cdk.out/
+**/cdk.out/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# ============================================================
+# Docker
+# ============================================================
+docker-data/
+**/docker-data/
+*.pid
+
+# ============================================================
+# Firebase (if any remnants exist - not needed for AWS)
+# ============================================================
+.firebase/
+.firebaserc
+firebase.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# ============================================================
+# Uploads & User Content (if stored locally)
+# ============================================================
+uploads/
+public/uploads/
+**/uploads/
+**/public/uploads/
+
+# ============================================================
+# Database Files (if using local databases)
+# ============================================================
+*.sqlite
+*.sqlite3
+*.db
+data/
+mongodb-data/
+
+# ============================================================
+# SSL Certificates (never commit!)
+# ============================================================
+*.pem
+*.key
+*.cert
+*.crt
+
+# ============================================================
+# Package Manager Locks (uncomment if you want to ignore)
+# ============================================================
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================================
+# Next.js Specific
+# ============================================================
+.next/
+out/
+.vercel/
+next-env.d.ts
+
+# ============================================================
+# Backend Specific
+# ============================================================
+# PM2 (process manager)
+.pm2/
+
+# ============================================================
+# Misc
+# ============================================================
+*.seed
+*.pid
+pids/
