@@ -81,17 +81,17 @@ export const registerUser = async (req, res) => {
     // Set secure cookies including user role
     setAllAuthCookies(res, tokens, user);
     
-    // Determine redirect URL based on user role
+    // Determine redirect URL based on user role - Updated to new profile routes
     let redirectUrl = '/dashboard';
     switch (user.role) {
       case 'speaker':
-        redirectUrl = '/speakerUser';
+        redirectUrl = '/profile/speaker';
         break;
       case 'organizer':
-        redirectUrl = '/newuser';
+        redirectUrl = '/profile/organizer';
         break;
       case 'participant':
-        redirectUrl = '/participant';
+        redirectUrl = '/profile/participant';
         break;
       default:
         redirectUrl = '/dashboard';
@@ -139,17 +139,17 @@ export const loginUser = async (req, res) => {
     // Set secure cookies including user role
     setAllAuthCookies(res, tokens, user);
     
-    // Determine redirect URL based on user role
+    // Determine redirect URL based on user role - Updated to new profile routes
     let redirectUrl = '/dashboard';
     switch (user.role) {
       case 'speaker':
-        redirectUrl = '/speakerUser';
+        redirectUrl = '/profile/speaker';
         break;
       case 'organizer':
-        redirectUrl = '/newuser';
+        redirectUrl = '/profile/organizer';
         break;
       case 'participant':
-        redirectUrl = '/participant';
+        redirectUrl = '/profile/participant';
         break;
       default:
         redirectUrl = '/dashboard';

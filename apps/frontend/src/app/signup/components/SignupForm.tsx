@@ -99,9 +99,32 @@ export default function SignupForm() {
       if (response.success) {
         setIsSuccess(true);
 
-        // Redirect to role-based dashboard after successful signup
+        // Redirect to role-based profile page after successful signup
+        const userRole =
+          (response.user as { role?: string } | undefined)?.role || "";
+        let redirectPath = "/dashboard";
+
+        // Use redirectUrl from response if available, otherwise determine from role
+        if (response.redirectUrl) {
+          redirectPath = response.redirectUrl;
+        } else {
+          switch (userRole) {
+            case "speaker":
+              redirectPath = "/profile/speaker";
+              break;
+            case "organizer":
+              redirectPath = "/profile/organizer";
+              break;
+            case "participant":
+              redirectPath = "/profile/participant";
+              break;
+            default:
+              redirectPath = "/dashboard";
+          }
+        }
+
         setTimeout(() => {
-          router.push(response.redirectUrl ?? "/dashboard");
+          router.push(redirectPath);
         }, 2000);
       }
     } catch (error) {

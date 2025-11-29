@@ -107,6 +107,25 @@ export const resendOtpRequest = createAsyncThunk<
   }
 });
 
+// Fetch current user from API
+export const fetchCurrentUser = createAsyncThunk<
+  { success: boolean; user: Record<string, unknown> },
+  void,
+  { rejectValue: string }
+>("auth/fetchCurrentUser", async (_, { rejectWithValue }) => {
+  try {
+    const { getCurrentUser } = await import("@/services/authService");
+    const user = await getCurrentUser();
+    return { success: true, user };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch current user.";
+    return rejectWithValue(message);
+  }
+});
+
 type AsyncStatus = "idle" | "loading" | "succeeded" | "failed";
 
 interface AuthState {
@@ -123,6 +142,8 @@ interface AuthState {
   otpError: string | null;
   otpSuccessMessage: string | null;
   isOtpVerified: boolean;
+  fetchUserStatus: AsyncStatus;
+  fetchUserError: string | null;
 }
 
 const initialState: AuthState = {
@@ -139,6 +160,8 @@ const initialState: AuthState = {
   otpError: null,
   otpSuccessMessage: null,
   isOtpVerified: false,
+  fetchUserStatus: "idle",
+  fetchUserError: null,
 };
 
 const authSlice = createSlice({
@@ -166,6 +189,28 @@ const authSlice = createSlice({
       state.otpSuccessMessage = null;
       state.isOtpVerified = false;
     },
+    logout(state) {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.redirectUrl = null;
+      state.loginStatus = "idle";
+      state.signupStatus = "idle";
+      state.loginError = null;
+      state.signupError = null;
+      state.fetchUserStatus = "idle";
+      state.fetchUserError = null;
+    },
+    updateUserBio(state, action: PayloadAction<string>) {
+      if (state.user) {
+        // Create a new user object to ensure React detects the change
+        state.user = { ...state.user, bio: action.payload };
+      }
+    },
+    updateUser(state, action: PayloadAction<Record<string, unknown>>) {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -182,6 +227,9 @@ const authSlice = createSlice({
           state.user = action.payload.user ?? null;
           state.redirectUrl = action.payload.redirectUrl ?? null;
           state.loginError = null;
+          // Reset fetch user status so it can fetch again if needed
+          state.fetchUserStatus = "idle";
+          state.fetchUserError = null;
         }
       )
       .addCase(loginUser.rejected, (state, action) => {
@@ -272,6 +320,24 @@ const authSlice = createSlice({
           action.payload ||
           action.error.message ||
           "Failed to resend verification code.";
+      })
+      // Fetch current user
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.fetchUserStatus = "loading";
+        state.fetchUserError = null;
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.fetchUserStatus = "succeeded";
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        state.fetchUserError = null;
+      })
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
+        state.fetchUserStatus = "failed";
+        state.isAuthenticated = false;
+        state.user = null;
+        state.fetchUserError =
+          action.payload || action.error.message || "Failed to fetch user.";
       });
   },
 });
@@ -282,7 +348,15 @@ export const {
   resetSignupStatus,
   clearOtpError,
   resetOtpState,
+  logout,
+  updateUserBio,
+  updateUser,
 } = authSlice.actions;
 
 export default authSlice.reducer;
+
+// Selectors
+export const selectUserRole = (state: { auth: AuthState }) => {
+  return (state.auth.user as { role?: string } | undefined)?.role || null;
+};
 

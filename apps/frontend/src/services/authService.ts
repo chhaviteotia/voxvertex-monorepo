@@ -122,18 +122,16 @@ export const logout = async (): Promise<void> => {
 
 /**
  * Get current user
+ * Uses cookie-based authentication (backend reads from cookies)
  */
 export const getCurrentUser = async (): Promise<any> => {
   try {
-    const token = localStorage.getItem("accessToken");
-    
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      credentials: "include",
+      credentials: "include", // Important: sends cookies
     });
 
     const result = await response.json();

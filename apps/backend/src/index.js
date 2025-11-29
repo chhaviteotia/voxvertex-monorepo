@@ -2,14 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './auth/routes/authRoutes.js';
+import profileRoutes from './profile/routes/profileRoutes.js';
+import postRoutes from './post/routes/postRoutes.js';
+import availabilityRoutes from './availability/routes/availabilityRoutes.js';
 import connectDB from './configs/dbConnect.js';
+import { connectCloudinary } from './configs/cloudinary.config.js';
 
 // Load environment variables
 dotenv.config();
 
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
@@ -17,11 +27,19 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Increased limit for file uploads
 app.use(cookieParser());
+
+// Serve static files from uploads directory (must be before routes)
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads'), {
+  maxAge: '1d', // Cache images for 1 day
+}));
 
 // Connect to database
 connectDB();
+
+// Connect to Cloudinary (optional - server will work without it)
+connectCloudinary();
 
 // Routes
 app.get('/health', (req, res) => {
@@ -29,6 +47,9 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/post', postRoutes);
+app.use('/api/availability', availabilityRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

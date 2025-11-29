@@ -77,15 +77,16 @@ export default function LoginPage() {
 
         const userRole =
           (result.user as { role?: string } | undefined)?.role || "";
+        // Redirect to role-based profile page
         switch (userRole) {
           case "speaker":
-            router.push("/speakerUser");
+            router.push("/profile/speaker");
             break;
           case "organizer":
-            router.push("/newuser");
+            router.push("/profile/organizer");
             break;
           case "participant":
-            router.push("/participant");
+            router.push("/profile/participant");
             break;
           default:
             router.push("/dashboard");
