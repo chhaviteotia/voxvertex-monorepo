@@ -129,6 +129,11 @@ const Calendar = () => {
     }
   }, [availabilityData, isAvailabilityLoading, availabilityError]);
 
+  // Handle errors gracefully
+  if (availabilityError) {
+    console.error("Error loading availability:", availabilityError);
+  }
+
   return (
     <div className="w-full h-auto bg-white shadow-lg rounded-2xl rounded-tl-none rounded-bl-none flex flex-col">
       <Suspense

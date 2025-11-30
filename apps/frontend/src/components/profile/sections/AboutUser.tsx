@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, memo } from "react";
+import { useState, useEffect, Suspense, memo, useMemo, useRef } from "react";
 import { BsGraphUpArrow } from "react-icons/bs";
 import { FiPhone, FiMail, FiMapPin } from "react-icons/fi";
 import { useAuth } from "@/store/hooks";
@@ -65,62 +65,72 @@ const AboutUser = memo(() => {
 
   const [userData, setUserData] = useState(defaultData);
 
+  // Track last processed user ID to prevent unnecessary re-processing
+  const lastProcessedUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    const processUserData = () => {
-      const user = currentUserData?.user || auth.user;
-      if (!user) {
-        setIsLoading(true);
-        return;
-      }
+    const user = currentUserData?.user || auth.user;
+    const userId = user?._id || user?.id || null;
 
-      // Extract domains/expertise from user data
-      const domains =
-        (user as any).areaOfExpertise ||
-        ((user as any).roleSpecificData?.activities || []).slice(0, 5) ||
-        defaultData.domains;
+    // If user ID hasn't changed and we've already processed it, skip
+    if (!userId) {
+      setIsLoading(true);
+      return;
+    }
 
-      // Prepare user data
-      const dynamicUserData = {
-        name:
-          `${(user as any).firstName || ""} ${
-            (user as any).lastName || ""
-          }`.trim() || defaultData.name,
-        role:
-          (user as any).professionalTitle ||
-          ((user as any).role === "speaker"
-            ? "Professional Speaker"
-            : (user as any).role) ||
-          defaultData.role,
-        description: (user as any).bio || defaultData.description,
-        profilePic: (user as any).profileImageUrl || defaultData.profilePic,
-        domains: domains,
-        stats: defaultData.stats, // Stats will be calculated from API later
-        contacts: [
-          {
-            icon: FiPhone,
-            label: "Contact Number",
-            value:
-              (user as any).mobileNo || (user as any).phone || "Not provided",
-          },
-          {
-            icon: FiMail,
-            label: "Email Address",
-            value: (user as any).email || "Not provided",
-          },
-          {
-            icon: FiMapPin,
-            label: "Location",
-            value: (user as any).location || "Not provided",
-          },
-        ],
-      };
+    // Skip if this is the same user we just processed
+    if (lastProcessedUserIdRef.current === userId) {
+      return;
+    }
 
-      setUserData(dynamicUserData);
-      setIsLoading(false);
+    // Extract domains/expertise from user data
+    const domains =
+      (user as any).areaOfExpertise ||
+      ((user as any).roleSpecificData?.activities || []).slice(0, 5) ||
+      defaultData.domains;
+
+    // Prepare user data
+    const dynamicUserData = {
+      name:
+        `${(user as any).firstName || ""} ${
+          (user as any).lastName || ""
+        }`.trim() || defaultData.name,
+      role:
+        (user as any).professionalTitle ||
+        ((user as any).role === "speaker"
+          ? "Professional Speaker"
+          : (user as any).role) ||
+        defaultData.role,
+      description: (user as any).bio || defaultData.description,
+      profilePic: (user as any).profileImageUrl || defaultData.profilePic,
+      domains: domains,
+      stats: defaultData.stats, // Stats will be calculated from API later
+      contacts: [
+        {
+          icon: FiPhone,
+          label: "Contact Number",
+          value:
+            (user as any).mobileNo || (user as any).phone || "Not provided",
+        },
+        {
+          icon: FiMail,
+          label: "Email Address",
+          value: (user as any).email || "Not provided",
+        },
+        {
+          icon: FiMapPin,
+          label: "Location",
+          value: (user as any).location || "Not provided",
+        },
+      ],
     };
 
-    processUserData();
-  }, [currentUserData, auth.user]);
+    // Update state and mark this user as processed
+    setUserData(dynamicUserData);
+    lastProcessedUserIdRef.current = userId;
+    setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserData?.user?._id, auth.user?._id]);
 
   // Show loading state
   if (isLoading || isUserLoading || !userData) {

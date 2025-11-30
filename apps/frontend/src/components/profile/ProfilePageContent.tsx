@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, ComponentType } from "react";
+import React, { Suspense, ComponentType, ReactNode } from "react";
 import dynamic from "next/dynamic";
 import AboutUser from "@/components/profile/sections/AboutUser";
 import WorkExperience from "@/components/profile/sections/WorkExperience";
@@ -111,8 +111,13 @@ export default function ProfilePageContent({ role }: ProfilePageContentProps) {
     const height = section.height || "h-48";
 
     // Dynamic components are already wrapped in Suspense by Next.js dynamic()
+    // They also have error handling built into dynamic imports
     if (section.dynamic) {
-      return <Component key={section.id} />;
+      return (
+        <div key={section.id} className="w-full">
+          <Component />
+        </div>
+      );
     }
 
     // Regular components need Suspense wrapper

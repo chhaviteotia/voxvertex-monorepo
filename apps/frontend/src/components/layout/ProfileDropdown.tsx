@@ -62,6 +62,7 @@ const ProfileDropdown = ({
         className="w-32 sm:w-36 md:w-40 h-8 sm:h-9 md:h-10 cursor-pointer flex items-center justify-between gap-1 sm:gap-2"
         aria-label="Profile menu"
         aria-expanded={showDropdown}
+        suppressHydrationWarning
       >
         <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shrink-0">
           {profileImageUrl ? (

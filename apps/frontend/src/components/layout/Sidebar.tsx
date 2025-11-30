@@ -214,7 +214,7 @@ const Sidebar = () => {
 
   return (
     <div
-      className="fixed top-20 sm:top-24 md:top-28 lg:top-32 border-2 left-2 sm:left-4 md:left-6 w-64 sm:w-72 md:w-72 bg-white shadow-md z-[98] rounded-lg sm:rounded-xl"
+      className="fixed top-20 sm:top-24 md:top-28 lg:top-32 border-2 left-2 sm:left-4 md:left-6 w-64 sm:w-72 md:w-72 bg-white shadow-md z-50 rounded-lg sm:rounded-xl"
       style={{ height: "calc(100vh - 142px)" }}
     >
       <div className="p-6 h-full flex flex-col">
@@ -222,12 +222,24 @@ const Sidebar = () => {
         <div className="space-y-2.5 flex-1 pb-4 border-b border-gray-100">
           {navigationItems.map((item, index) => {
             const isDisabled = item.disabled;
+            const handleNavigation = (href: string) => {
+              if (!isDisabled && !item.active) {
+                router.push(href);
+              }
+            };
+
             return (
               <div
                 key={`nav-${index}`}
-                onClick={() => {
-                  if (!isDisabled) {
-                    router.push(item.href);
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleNavigation(item.href);
+                }}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && !isDisabled) {
+                    e.preventDefault();
+                    handleNavigation(item.href);
                   }
                 }}
                 className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg transition duration-200 ${
@@ -240,6 +252,7 @@ const Sidebar = () => {
                 role="button"
                 tabIndex={isDisabled ? -1 : 0}
                 aria-disabled={isDisabled}
+                suppressHydrationWarning
               >
                 {renderIcon(item.icon)}
                 <span className="text-sm font-medium leading-5">
@@ -292,7 +305,7 @@ const Sidebar = () => {
                 />
               ) : null}
               <div
-                className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-sm"
+                className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-sm"
                 style={{
                   display: userDetails.profileImageUrl ? "none" : "flex",
                 }}
@@ -314,6 +327,7 @@ const Sidebar = () => {
             className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors shrink-0 ml-2"
             title="Logout"
             aria-label="Logout"
+            suppressHydrationWarning
           >
             <MdLogout size={16} />
           </button>

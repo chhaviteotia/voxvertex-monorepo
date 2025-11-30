@@ -33,6 +33,11 @@ const Posts = () => {
 
   const [deletePost] = useDeletePostMutation();
 
+  // Handle errors gracefully
+  if (error) {
+    console.error("Error loading posts:", error);
+  }
+
   // Format posts for UI display
   const recentPosts = useMemo(() => {
     if (!Array.isArray(postsData)) return [];
@@ -118,6 +123,23 @@ const Posts = () => {
     // Refetch posts after editing to get updated data
     refetch();
   };
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <section className="w-full bg-[#ffffff] pb-4 shadow-md rounded-lg rounded-tl-none rounded-bl-none p-4">
+        <div className="text-center py-8">
+          <p className="text-red-600 mb-2">Error loading posts</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+          >
+            Retry
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full bg-[#ffffff] pb-4 shadow-md rounded-lg rounded-tl-none rounded-bl-none">

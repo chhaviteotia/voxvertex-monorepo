@@ -8,6 +8,7 @@ import authRoutes from './auth/routes/authRoutes.js';
 import profileRoutes from './profile/routes/profileRoutes.js';
 import postRoutes from './post/routes/postRoutes.js';
 import availabilityRoutes from './availability/routes/availabilityRoutes.js';
+import disputeRoutes from './dispute/routes/disputeRoutes.js';
 import connectDB from './configs/dbConnect.js';
 import { connectCloudinary } from './configs/cloudinary.config.js';
 
@@ -50,6 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/availability', availabilityRoutes);
+app.use('/api/dispute', disputeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
