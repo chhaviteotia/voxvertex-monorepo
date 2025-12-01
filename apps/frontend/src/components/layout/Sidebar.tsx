@@ -157,8 +157,8 @@ const Sidebar = () => {
         {
           icon: <Cpu />,
           label: "Tech Readiness",
-          href: "/profile/speaker/readiness",
-          active: currentPath.startsWith("/profile/speaker/readiness"),
+          href: "/readiness_testing/speaker",
+          active: currentPath.startsWith("/readiness_testing"),
           disabled: !isSpeaker,
         },
         eventsItem,
