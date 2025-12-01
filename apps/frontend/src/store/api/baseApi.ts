@@ -76,6 +76,8 @@ export const baseApi = createApi({
     'TechReadinessSession',
     'Dispute',
     'DisputeStats',
+    'PrivacySettings',
+    'Account',
   ],
   endpoints: () => ({}),
 });

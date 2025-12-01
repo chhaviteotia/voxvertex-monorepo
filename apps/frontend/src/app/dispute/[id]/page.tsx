@@ -19,10 +19,14 @@ export default function DisputeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data, isLoading, refetch } = useGetDisputeByIdQuery(id);
+  const { data, isLoading, error, refetch } = useGetDisputeByIdQuery(id);
   const dispute: Dispute | undefined = data?.dispute;
   const [newMessage, setNewMessage] = useState("");
   const [addMessage, { isLoading: isAddingMessage }] = useAddMessageMutation();
+
+  console.log("DisputeDetailPage - id:", id);
+  console.log("DisputeDetailPage - data:", data);
+  console.log("DisputeDetailPage - error:", error);
 
   // Handle send message
   const handleSendMessage = async () => {
@@ -40,7 +44,7 @@ export default function DisputeDetailPage({
     }
   };
 
-  if (isLoading || !dispute) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -51,12 +55,49 @@ export default function DisputeDetailPage({
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading dispute details</p>
+          <p className="text-gray-500 text-sm mb-4">
+            {(error as any)?.data?.message ||
+              (error as any)?.message ||
+              "Unknown error"}
+          </p>
+          <Link
+            href="/dispute"
+            className="text-orange-600 hover:text-orange-700 underline"
+          >
+            Back to Disputes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dispute) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Dispute not found</p>
+          <Link
+            href="/dispute"
+            className="text-orange-600 hover:text-orange-700 underline"
+          >
+            Back to Disputes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const complainant = dispute.complainant;
   const respondents = dispute.respondent || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="flex-1">
+      <main className="flex-1 p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Dispute Details Sidebar */}
           <div className="lg:col-span-1">

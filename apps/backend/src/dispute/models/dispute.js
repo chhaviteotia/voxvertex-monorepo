@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { idsEqual, idToString } from '../../utils/db/idUtils.js';
 
 /**
  * Dispute Model - Database-agnostic structure
@@ -15,7 +16,7 @@ const disputeSchema = new mongoose.Schema({
     // Basic dispute information
     disputeId: {
         type: String,
-        required: true,
+        required: true, // Required, but will be set before validation
         unique: true,
         index: true
     },
@@ -333,8 +334,8 @@ disputeSchema.pre('save', function(next) {
     next();
 });
 
-// Generate unique dispute ID
-disputeSchema.pre('save', function(next) {
+// Generate unique dispute ID - runs before validation
+disputeSchema.pre('validate', function(next) {
     if (this.isNew && !this.disputeId) {
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -428,27 +429,68 @@ disputeSchema.methods.escalate = function(reason, escalatedBy) {
 };
 
 // Instance method to check if user is authorized to access dispute
+// Uses database-agnostic ID utilities for easy migration
+// Handles both populated and non-populated references
 disputeSchema.methods.isAuthorized = function(userId) {
+    if (!userId) return false;
+    
+    // Normalize userId to string for comparison
+    const userIdStr = idToString(userId);
+    if (!userIdStr) {
+      console.error('isAuthorized: userIdStr is null/undefined', { userId });
+      return false;
+    }
+    
+    // Helper to extract ID from populated or non-populated reference
+    const extractId = (ref) => {
+      if (!ref) return null;
+      // If populated, ref is an object with _id property (Mongoose populated document)
+      if (typeof ref === 'object' && ref._id && !ref.toString) {
+        // This is a populated document, extract _id
+        return idToString(ref._id);
+      }
+      // If not populated, ref is the ID itself (ObjectId or string)
+      return idToString(ref);
+    };
+    
     // Check if user is complainant
-    const isComplainant = this.complainant?._id?.toString() === userId?.toString() ||
-                         this.complainant?._id?.equals?.(userId);
+    // complainant._id might be populated (user object) or just ObjectId
+    const complainantId = extractId(this.complainant?._id);
+    const isComplainant = complainantId === userIdStr;
     
     // Check if user is respondent
     const isRespondent = Array.isArray(this.respondent) && 
-                        this.respondent.some(r => 
-                            r._id?.toString() === userId?.toString() || 
-                            r._id?.equals?.(userId)
-                        );
+                        this.respondent.some(r => {
+                          const respondentId = extractId(r._id);
+                          return respondentId === userIdStr;
+                        });
     
     // Check if user is mediator
-    const isMediator = this.mediationData?.mediator?.toString() === userId?.toString() ||
-                      this.mediationData?.mediator?.equals?.(userId);
+    const mediatorId = extractId(this.mediationData?.mediator);
+    const isMediator = mediatorId === userIdStr;
     
     // Check if user is legal representative
-    const isLegalRep = this.legalData?.legalRepresentative?.toString() === userId?.toString() ||
-                      this.legalData?.legalRepresentative?.equals?.(userId);
+    const legalRepId = extractId(this.legalData?.legalRepresentative);
+    const isLegalRep = legalRepId === userIdStr;
     
-    return isComplainant || isRespondent || isMediator || isLegalRep;
+    const result = isComplainant || isRespondent || isMediator || isLegalRep;
+    
+    // Debug logging
+    if (!result) {
+      console.log('isAuthorized check failed:', {
+        userIdStr,
+        complainantId,
+        isComplainant,
+        respondentIds: this.respondent?.map(r => extractId(r._id)),
+        isRespondent,
+        mediatorId,
+        isMediator,
+        legalRepId,
+        isLegalRep
+      });
+    }
+    
+    return result;
 };
 
 const Dispute = mongoose.models.Dispute || mongoose.model('Dispute', disputeSchema);

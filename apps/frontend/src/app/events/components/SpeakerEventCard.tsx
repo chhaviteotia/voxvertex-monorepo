@@ -43,13 +43,18 @@ export default function SpeakerEventCard({
   const endDate = new Date(event.endDate);
 
   let normalizedStatus: string = "Upcoming";
+  let statusMessage: string | null = null;
 
   if (event.status === "cancelled") {
     normalizedStatus = "Cancelled";
   } else if (event.status === "postponed") {
+    // Check if it's awaiting action
+    // TODO: This should come from booking status when backend is ready
     normalizedStatus = "Postponed";
+    statusMessage = "Moved to " + formatDate(event.startDate);
   } else if (endDate < now && event.status === "published") {
     normalizedStatus = "Completed";
+    statusMessage = "Event completed & reviewed";
   } else if (startDate > now && event.status === "published") {
     normalizedStatus = "Upcoming";
   }
@@ -69,6 +74,13 @@ export default function SpeakerEventCard({
 
   const bookingInfo = getSpeakerBookingInfo();
 
+  // Get booking amount - this would come from booking data when backend is ready
+  const bookingAmount = bookingInfo?.bookingAmount || 0;
+  const settlementAmount = bookingInfo?.settlementAmount || null;
+  const rating = bookingInfo?.rating || null;
+  const isAccepted = bookingInfo?.status === "accepted" || false;
+  const bookingStatus = bookingInfo?.status || "pending";
+
   return (
     <div className="bg-white border border-[#FF6B35] rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -83,16 +95,41 @@ export default function SpeakerEventCard({
           <span>{formatDate(event.startDate)}</span>
         </div>
 
-        {/* Amount display - will show booking amount when booking data is integrated */}
-        <p className="text-[#FF6B35] text-md font-medium">Event Engagement</p>
+        {/* Amount display */}
+        {settlementAmount ? (
+          <div>
+            <p className="text-[#FF6B35] text-md font-medium">
+              ₹ {bookingAmount.toLocaleString()}{" "}
+              <span className="text-base text-gray-600 font-normal">
+                (Settlement: ₹{settlementAmount.toLocaleString()})
+              </span>
+            </p>
+          </div>
+        ) : (
+          <p className="text-[#FF6B35] text-md font-medium">
+            ₹{" "}
+            {bookingAmount > 0
+              ? bookingAmount.toLocaleString()
+              : "Event Engagement"}
+          </p>
+        )}
 
-        {normalizedStatus === "Completed" ? (
+        {normalizedStatus === "Completed" && rating ? (
           <div className="flex items-center justify-between">
             <StatusBadge status={normalizedStatus} />
-            {/* Rating will be shown here when feedback/rating system is integrated */}
+            <div className="flex items-center gap-1 text-[#FF6B35]">
+              <Star className="w-5 h-5 fill-current" />
+              <span>{rating}/5</span>
+            </div>
           </div>
         ) : (
           <StatusBadge status={normalizedStatus} />
+        )}
+
+        {statusMessage && (
+          <div className="bg-yellow-50 text-yellow-800 px-3 py-2 rounded text-sm">
+            {statusMessage}
+          </div>
         )}
       </div>
 
@@ -121,11 +158,13 @@ export default function SpeakerEventCard({
       {normalizedStatus === "Completed" && (
         <div className="flex items-center gap-2 text-green-600 justify-center py-3">
           <span className="text-lg">✓</span>
-          <span className="font-medium">Event completed</span>
+          <span className="font-medium">
+            {statusMessage || "Event completed"}
+          </span>
         </div>
       )}
 
-      {normalizedStatus === "Cancelled" && (
+      {normalizedStatus === "Cancelled" && !settlementAmount && (
         <div className="space-y-3">
           {onOpenSettlement && (
             <button
@@ -139,17 +178,102 @@ export default function SpeakerEventCard({
         </div>
       )}
 
-      {normalizedStatus === "Postponed" && (
+      {normalizedStatus === "Cancelled" && settlementAmount && (
         <div className="space-y-3">
-          <Link
-            href={`/events/${event._id}`}
-            className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-[#FF6B35]/50 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
-          >
-            <Calendar className="w-5 h-5" />
-            View Details
-          </Link>
+          <p className="text-[#FF6B35] font-medium text-center">
+            Settlement: ₹{settlementAmount.toLocaleString()}
+          </p>
+
+          {onOpenFeedback && (
+            <button
+              onClick={() => onOpenFeedback(event)}
+              className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-[#FF6B35]/50 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Star className="w-5 h-5" />
+              Add Rating
+            </button>
+          )}
         </div>
       )}
+
+      {normalizedStatus === "Postponed" && isAccepted && (
+        <div className="space-y-3">
+          <p className="text-green-600 font-medium text-center flex items-center justify-center gap-1">
+            <span>✓</span> Accepted
+          </p>
+
+          {onOpenFeedback && (
+            <button
+              onClick={() => onOpenFeedback(event)}
+              className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-[#FF6B35]/50 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Star className="w-5 h-5" />
+              Add Rating
+            </button>
+          )}
+        </div>
+      )}
+
+      {normalizedStatus === "Postponed" &&
+        !isAccepted &&
+        bookingStatus === "awaiting_response" && (
+          <div>
+            {onOpenNegotiate && (
+              <button
+                onClick={() => onOpenNegotiate(event)}
+                className="w-full bg-[#FF6B35] hover:bg-[#e1501b] text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <Calendar className="w-5 h-5" />
+                Respond Now
+              </button>
+            )}
+          </div>
+        )}
+
+      {normalizedStatus === "Postponed" &&
+        !isAccepted &&
+        bookingStatus === "declined" && (
+          <div className="space-y-3">
+            <p className="text-red-600 font-medium text-center flex items-center justify-center gap-1">
+              <span>✗</span> Declined
+            </p>
+
+            {onOpenNegotiate && (
+              <button
+                onClick={() => onOpenNegotiate(event)}
+                className="w-full bg-white text-yellow-600 border border-yellow-600 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <Calendar className="w-5 h-5" />
+                Negotiate
+              </button>
+            )}
+
+            {onOpenFeedback && (
+              <button
+                onClick={() => onOpenFeedback(event)}
+                className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-[#FF6B35]/50 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <Star className="w-5 h-5" />
+                Add Rating
+              </button>
+            )}
+          </div>
+        )}
+
+      {normalizedStatus === "Postponed" &&
+        !isAccepted &&
+        bookingStatus !== "awaiting_response" &&
+        bookingStatus !== "declined" && (
+          <div className="space-y-3">
+            <Link
+              href={`/events/${event._id}`}
+              className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-[#FF6B35]/50 font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Calendar className="w-5 h-5" />
+              View Details
+            </Link>
+          </div>
+        )}
     </div>
   );
 }

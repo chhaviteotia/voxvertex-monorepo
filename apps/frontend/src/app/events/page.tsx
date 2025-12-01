@@ -25,8 +25,12 @@ import {
 import { useGetAllEventsQuery } from "@/store/api/eventApi";
 import { useAuth, useGetCurrentUserQuery } from "@/store/hooks";
 import type { Event } from "@/types/event";
-import FilterBar from "./components/FilterBar";
-import SpeakerEventCard from "./components/SpeakerEventCard";
+// Speaker modals - kept for potential future use
+// import FilterBar from "./components/FilterBar";
+// import SpeakerEventCard from "./components/SpeakerEventCard";
+// import FeedbackModal, { type Ratings } from "./components/FeedbackModal";
+// import SettlementModal from "./components/SettlementModal";
+// import NegotiateModal from "./components/NegotiateModal";
 
 /**
  * Events Page - Role-based UI matching old project
@@ -45,8 +49,28 @@ export default function EventsPage() {
   const isSpeaker = role === "speaker";
   const isParticipant = role === "participant";
 
-  // Speaker filter state
-  const [activeFilter, setActiveFilter] = useState<string>("All Events");
+  // Speaker filter state (not used anymore - using same structure as organizer)
+  // const [activeFilter, setActiveFilter] = useState<string>("All Events");
+
+  // Speaker modal state (kept for potential future use)
+  // const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  // const [showSettlementModal, setShowSettlementModal] = useState(false);
+  // const [showNegotiateModal, setShowNegotiateModal] = useState(false);
+  // const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  // const [ratings, setRatings] = useState<Ratings>({
+  //   organization: 0,
+  //   communication: 0,
+  //   engagement: 0,
+  //   timing: 0,
+  // });
+  // const [workAgain, setWorkAgain] = useState<string>("");
+  // const [additionalComments, setAdditionalComments] = useState<string>("");
+  // const [settlementAmount, setSettlementAmount] = useState<string>("0.00");
+  // const [settlementReason, setSettlementReason] = useState<string>("");
+  // const [postponeResponse, setPostponeResponse] = useState<string>("");
+  // const [proposedDate, setProposedDate] = useState<string>("");
+  // const [proposedTime, setProposedTime] = useState<string>("");
+  // const [declineReason, setDeclineReason] = useState<string>("");
 
   // Organizer/Participant filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,33 +133,19 @@ export default function EventsPage() {
     );
   }, [events, searchTerm, isOrganizer]);
 
-  // Speaker: Filter events by status
+  // Speaker: Filter events by search and status (same as organizer)
   const filteredEventsSpeaker = useMemo(() => {
     if (!isSpeaker) return [];
-
-    if (activeFilter === "All Events") {
-      return events;
-    }
-
-    const now = new Date();
     return events.filter((event) => {
-      const startDate = new Date(event.startDate);
-      const endDate = new Date(event.endDate);
-
-      switch (activeFilter) {
-        case "Upcoming":
-          return startDate > now && event.status === "published";
-        case "Completed":
-          return endDate < now && event.status === "published";
-        case "Cancelled":
-          return event.status === "cancelled";
-        case "Postponed":
-          return event.status === "postponed";
-        default:
-          return true;
-      }
+      const matchesSearch = event.eventName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "All Statuses" ||
+        event.status === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
     });
-  }, [events, activeFilter, isSpeaker]);
+  }, [events, searchTerm, statusFilter, isSpeaker]);
 
   // Participant: Filter and separate upcoming/past
   const isEventUpcoming = (startDate: string) => {
@@ -578,64 +588,185 @@ export default function EventsPage() {
     );
   }
 
+  // Speaker modal handlers (kept for potential future use)
+  // const handleOpenFeedback = (event: Event) => { ... };
+  // const handleCloseFeedback = () => { ... };
+  // const handleOpenSettlement = (event: Event) => { ... };
+  // const handleCloseSettlement = () => { ... };
+  // const handleOpenNegotiate = (event: Event) => { ... };
+  // const handleCloseNegotiate = () => { ... };
+  // const handleCancelEvent = (event: Event) => { ... };
+  // const handleRatingClick = (category: string, value: number) => { ... };
+  // const handleSubmitFeedback = () => { ... };
+  // const handleSubmitSettlement = () => { ... };
+  // const handleSubmitNegotiate = () => { ... };
+  // const handleQuickSelect = (percentage: number) => { ... };
+
   // ===== SPEAKER VIEW =====
   if (isSpeaker) {
-    const filters = [
-      "All Events",
-      "Upcoming",
-      "Completed",
-      "Cancelled",
-      "Postponed",
-    ];
-    const topRowEvents = filteredEventsSpeaker.slice(0, 3);
-    const bottomRowEvents = filteredEventsSpeaker.slice(3);
-
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="mb-6 lg:mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="relative min-h-screen bg-gray-50">
+        <main className="flex-1 p-0">
+          {/* Header Section - Same as organizer but without Create Event button */}
+          <div className="bg-gradient-to-r from-[#FF9974] via-[#FFB194] to-[#FFCBB8] rounded-lg flex justify-between items-center p-6 mb-8">
             <div>
-              <h1 className="text-3xl sm:text-2xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-black">
                 Event Management
               </h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Track and manage all speaker events and engagements
+              <p className="text-white mt-1">
+                View and manage all your events.
               </p>
             </div>
-
-            <FilterBar
-              filters={filters}
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-            />
+            {/* No Create Event button for speakers */}
           </div>
-        </div>
 
-        <div className="space-y-6">
-          {topRowEvents.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {topRowEvents.map((event) => (
-                <SpeakerEventCard key={event._id} event={event} />
-              ))}
+          {/* Main Content Card */}
+          <div className="bg-white border border-[#FF6B35]/20 rounded-lg shadow-sm p-8 w-full">
+            {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex items-center w-64">
+                <div className="relative flex items-center w-full">
+                  <Search className="absolute left-3 text-[#FF6B35] w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search Events..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-[#FF6B35]/10 border border-[#FF6B35] rounded-lg focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                    suppressHydrationWarning
+                  />
+                </div>
+              </div>
+              <div className="relative w-40">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 w-full focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                  suppressHydrationWarning
+                >
+                  <option>All Statuses</option>
+                  <option>Published</option>
+                  <option>Draft</option>
+                  <option>Postponed</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+              </div>
             </div>
-          )}
 
-          {bottomRowEvents.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bottomRowEvents.map((event) => (
-                <SpeakerEventCard key={event._id} event={event} />
-              ))}
-            </div>
-          )}
+            {/* Card Grid View */}
+            {filteredEventsSpeaker.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredEventsSpeaker.map((event) => {
+                  const ticketsSold = event.totalTicketsSold || 0;
+                  const totalCapacity = event.totalCapacity || 0;
+                  const revenue = event.totalRevenue || 0;
+                  const tags = event.tags?.slice(0, 3) || [];
+                  const bannerImage =
+                    event.bannerImage ||
+                    "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=800&q=60";
 
-          {filteredEventsSpeaker.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">
-                No events found for this filter.
-              </p>
-            </div>
-          )}
-        </div>
+                  return (
+                    <div
+                      key={event._id}
+                      className="border border-orange-100 rounded-2xl shadow-sm overflow-hidden flex flex-col bg-gradient-to-br from-white to-orange-50"
+                    >
+                      <div className="h-40 w-full overflow-hidden">
+                        <img
+                          src={bannerImage}
+                          alt={event.eventName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {event.eventName}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {formatDate(event.startDate)} —{" "}
+                              {formatDate(event.endDate)}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                              event.status
+                            )}`}
+                          >
+                            {getStatusDisplayName(event.status)}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Mode</p>
+                            <p className="font-medium capitalize text-gray-900">
+                              {event.eventMode}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Attendees</p>
+                            <p className="font-medium text-gray-900">
+                              {ticketsSold}/{totalCapacity}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Location</p>
+                            <p className="font-medium text-gray-900 line-clamp-1">
+                              {event.location || "TBA"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Revenue</p>
+                            <p className="font-medium text-gray-900">
+                              ₹{revenue.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        {tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="px-5 py-4 border-t border-orange-100 flex items-center gap-3">
+                        <Link
+                          href={`/events/${event._id}`}
+                          className="flex-1 text-center px-4 py-2 rounded-full text-sm font-medium text-white bg-[#FF6B35] hover:bg-orange-600 transition-colors"
+                        >
+                          View Event
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No events found
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {searchTerm || statusFilter !== "All Statuses"
+                    ? "Try adjusting your search or filter criteria."
+                    : "No events available at the moment."}
+                </p>
+                {/* No Create Event button for speakers */}
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     );
   }

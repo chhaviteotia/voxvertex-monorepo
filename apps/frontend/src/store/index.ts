@@ -3,6 +3,9 @@ import authReducer from "./slices/authSlice";
 import profileReducer from "./slices/profileSlice";
 import disputeReducer from "./slices/disputeSlice";
 import { baseApi } from "./api/baseApi";
+// Import APIs to ensure endpoints are injected
+import "./api/privacyApi";
+import "./api/accountApi";
 
 export const store = configureStore({
   reducer: {

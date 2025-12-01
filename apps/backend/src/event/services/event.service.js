@@ -96,22 +96,27 @@ class EventService {
   /**
    * Get events where user is a platform speaker
    * @param {String} speakerId - Speaker user ID
-   * @param {Object} filters - Filter options (page, limit)
+   * @param {Object} filters - Filter options (page, limit, status)
    * @returns {Promise<Object>} Events with pagination
    */
   static async getEventsBySpeaker(speakerId, filters = {}) {
     try {
-      const { page = 1, limit = 10 } = filters;
+      const { page = 1, limit = 10, status } = filters;
       
       const query = {
-        'speakers.platformSpeakers.speakerId': speakerId,
-        status: 'published'
+        'speakers.platformSpeakers.speakerId': speakerId
       };
+      
+      // Add status filter if provided, otherwise show all statuses
+      if (status) {
+        query.status = status;
+      }
       
       const skip = (page - 1) * limit;
       
       const events = await EnhancedEvent.find(query)
         .populate('organizer', 'firstName lastName email profileImageUrl')
+        .populate('speakers.platformSpeakers.speakerId', 'firstName lastName profileImageUrl professionalTitle')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit));
@@ -377,7 +382,7 @@ class EventService {
   }
 
   /**
-   * Get events for dispute filing (organizers & speakers)
+   * Get events for dispute filing (organizers, speakers, participants)
    * @param {String} userId - User ID
    * @param {String} userRole - User role
    * @param {Object} filters - Filter options (page, limit)
@@ -389,14 +394,25 @@ class EventService {
       let query = {};
       
       if (userRole === 'organizer') {
+        // Organizers: Events they created (all statuses except cancelled)
         query = {
           organizer: userId,
-          status: { $in: ['published', 'draft'] }
+          status: { $in: ['published', 'draft', 'postponed'] }
         };
       } else if (userRole === 'speaker') {
+        // Speakers: Events where they are confirmed (in platformSpeakers) - all statuses
         query = {
-          'speakers.platformSpeakers.speakerId': userId,
-          status: 'published'
+          'speakers.platformSpeakers.speakerId': userId
+          // No status filter - show all statuses where speaker is confirmed
+        };
+      } else if (userRole === 'participant') {
+        // Participants: Events they participated in (registered/bought tickets)
+        // For now, we'll query published events where they might have registered
+        // TODO: When event registration model is implemented, query actual registrations
+        query = {
+          status: 'published',
+          // Note: This is a placeholder - should query actual registrations when available
+          // For now, participants can see all published events they might have participated in
         };
       } else {
         return {
@@ -415,6 +431,7 @@ class EventService {
       
       const events = await EnhancedEvent.find(query)
         .populate('organizer', 'firstName lastName email profileImageUrl')
+        .populate('speakers.platformSpeakers.speakerId', 'firstName lastName profileImageUrl professionalTitle')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit));

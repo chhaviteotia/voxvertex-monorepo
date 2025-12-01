@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { isValidId } from '../../utils/db/idUtils.js';
 
 export const validateGetAvailability = (req, res, next) => {
   const { year, month } = req.params;
@@ -45,7 +46,7 @@ export const validateDateRange = (req, res, next) => {
 export const validateAvailabilityId = (req, res, next) => {
   const { availabilityId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(availabilityId)) {
+  if (!isValidId(availabilityId)) {
     return res.status(400).json({
       success: false,
       message: "Invalid availability ID format",

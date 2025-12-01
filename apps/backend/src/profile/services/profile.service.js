@@ -1,6 +1,7 @@
 import EnhancedProfile from '../models/enhancedProfile.js';
 import EnhancedUser from '../../auth/models/enhancedUser.js';
 import mongoose from 'mongoose';
+import { createId } from '../../utils/db/idUtils.js';
 
 /**
  * Profile Service - Database-agnostic service layer
@@ -111,7 +112,7 @@ class ProfileService {
       const profile = await this.getOrCreateProfile(userId);
       
       const newExperience = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: createId(),
         ...experienceData
       };
       
@@ -185,7 +186,7 @@ class ProfileService {
       const profile = await this.getOrCreateProfile(userId);
       
       const newEducation = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: createId(),
         ...educationData
       };
       
@@ -258,7 +259,7 @@ class ProfileService {
       const profile = await this.getOrCreateProfile(userId);
       
       const newAward = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: createId(),
         ...awardData
       };
       
@@ -331,7 +332,7 @@ class ProfileService {
       const profile = await this.getOrCreateProfile(userId);
       
       const newVideo = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: createId(),
         ...videoData
       };
       

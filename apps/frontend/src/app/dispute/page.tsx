@@ -31,6 +31,7 @@ export default function DisputePage() {
     page,
   });
 
+  // Backend returns { success: true, disputes: [...], pagination: {...} }
   const disputes: Dispute[] = disputesData?.disputes || [];
   const totalPages: number = disputesData?.pagination?.pages || 1;
 
@@ -308,12 +309,28 @@ export default function DisputePage() {
                         {new Date(d.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-center align-middle">
-                        <Link
-                          href={`/dispute/${d._id}`}
-                          className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
-                        >
-                          <FileText size={18} />
-                        </Link>
+                        {d._id ? (
+                          <Link
+                            href={`/dispute/${d._id}`}
+                            className="p-2 text-gray-400 hover:text-orange-600 transition-colors inline-block"
+                            onClick={() => {
+                              console.log(
+                                "Navigating to dispute:",
+                                d._id,
+                                d.disputeId
+                              );
+                            }}
+                          >
+                            <FileText size={18} />
+                          </Link>
+                        ) : (
+                          <span
+                            className="p-2 text-gray-300 cursor-not-allowed"
+                            title="Dispute ID not available"
+                          >
+                            <FileText size={18} />
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

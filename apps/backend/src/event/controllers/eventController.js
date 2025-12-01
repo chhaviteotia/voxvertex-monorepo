@@ -271,9 +271,18 @@ export const getUserEvents = async (req, res) => {
         filters.status = status || undefined;
       }
       result = await EventService.getEventsByOrganizer(userId, filters);
-    } else if (userRole === 'speaker' && isDisputeMode) {
-      // Speakers can only see events they're part of in dispute mode
-      result = await EventService.getEventsBySpeaker(userId, { page, limit });
+    } else if (userRole === 'speaker') {
+      // Speakers see events where they are platform speakers (booked/approached)
+      // Support status filtering and dispute mode
+      const filters = { page, limit };
+      if (status) {
+        filters.status = status;
+      }
+      if (isDisputeMode) {
+        // In dispute mode, don't filter by status (show all statuses)
+        filters.status = undefined;
+      }
+      result = await EventService.getEventsBySpeaker(userId, filters);
     } else {
       // Participants see empty array - they should use getAllEvents or getUpcomingEvents
       result = {

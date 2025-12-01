@@ -1,6 +1,7 @@
 import Dispute from '../models/dispute.js';
 import EnhancedUser from '../../auth/models/enhancedUser.js';
 import mongoose from 'mongoose';
+import { isValidId, normalizeId, idToString, idsEqual } from '../../utils/db/idUtils.js';
 
 /**
  * Dispute Service - Database-agnostic service layer
@@ -38,8 +39,14 @@ class DisputeService {
         throw new Error('Missing required fields: title, description, category, complainant, and at least one respondent');
       }
 
+      // Generate disputeId before creating dispute instance
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const generatedDisputeId = `DSP-${timestamp}-${random}`;
+
       // Create dispute
       const dispute = new Dispute({
+        disputeId: generatedDisputeId, // Set disputeId explicitly
         title,
         description,
         category,
@@ -48,7 +55,7 @@ class DisputeService {
         disputeCurrency,
         complainant: complainantData,
         respondent: respondents,
-        eventId: eventId || null,
+        eventId: eventId ? (normalizeId(eventId) || eventId) : null,
         peerToPeerData: {
           startedAt: new Date(),
           deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
@@ -56,9 +63,12 @@ class DisputeService {
       });
 
       // Add timeline entry
+      // Note: performedBy must be ObjectId for MongoDB schema
+      // Ensure complainantData._id is an ObjectId
+      const performedById = normalizeId(complainantData._id) || complainantData._id;
       dispute.timeline.push({
         action: 'Dispute created',
-        performedBy: complainantData._id,
+        performedBy: performedById,
         details: 'Initial creation',
         stage: dispute.currentStage,
         timestamp: new Date()
@@ -67,7 +77,21 @@ class DisputeService {
       const savedDispute = await dispute.save();
       return savedDispute;
     } catch (error) {
-      throw new Error(`Failed to create dispute: ${error.message}`);
+      console.error('DisputeService.createDispute error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        errors: error.errors,
+        stack: error.stack
+      });
+      
+      // If it's a validation error, provide more details
+      if (error.name === 'ValidationError') {
+        const errors = Object.values(error.errors || {}).map(e => e.message).join(', ');
+        throw new Error(`Dispute validation failed: ${errors}`);
+      }
+      
+      throw new Error(`Failed to create dispute: ${error.message || error.toString()}`);
     }
   }
 
@@ -79,7 +103,28 @@ class DisputeService {
    */
   static async getDisputeById(disputeId, userId) {
     try {
-      const dispute = await Dispute.findById(disputeId)
+      // First get dispute without populate to check authorization
+      // (populate changes the structure and makes ID comparison harder)
+      let dispute = await Dispute.findById(disputeId);
+      
+      if (!dispute) {
+        throw new Error('Dispute not found');
+      }
+
+      // Check authorization before populating (uses original ID structure)
+      if (!dispute.isAuthorized(userId)) {
+        console.error('Authorization failed:', {
+          userId: userId?.toString(),
+          userIdType: typeof userId,
+          complainantId: dispute.complainant?._id?.toString(),
+          complainantIdType: typeof dispute.complainant?._id,
+          respondentIds: dispute.respondent?.map(r => r._id?.toString()),
+        });
+        throw new Error('Not authorized to view this dispute');
+      }
+
+      // Now populate for response
+      dispute = await Dispute.findById(disputeId)
         .populate('complainant._id', 'firstName lastName email profileImageUrl')
         .populate('respondent._id', 'firstName lastName email profileImageUrl')
         .populate('mediationData.mediator', 'firstName lastName email profileImageUrl')
@@ -87,15 +132,6 @@ class DisputeService {
         .populate('messages.sender', 'firstName lastName email profileImageUrl')
         .populate('evidence.submittedBy', 'firstName lastName email profileImageUrl')
         .populate('timeline.performedBy', 'firstName lastName email');
-
-      if (!dispute) {
-        throw new Error('Dispute not found');
-      }
-
-      // Check authorization using instance method
-      if (!dispute.isAuthorized(userId)) {
-        throw new Error('Not authorized to view this dispute');
-      }
 
       return dispute;
     } catch (error) {
@@ -122,9 +158,7 @@ class DisputeService {
       const limitNum = parseInt(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      const userObjectId = mongoose.Types.ObjectId.isValid(userId) 
-        ? new mongoose.Types.ObjectId(userId) 
-        : userId;
+      const userObjectId = normalizeId(userId) || userId;
 
       // Build query - flexible for both embedded objects and ObjectId refs
       const query = {
@@ -216,13 +250,9 @@ class DisputeService {
       }
 
       // Check authorization - only parties can escalate
-      const isComplainant = dispute.complainant?._id?.toString() === userId?.toString() ||
-                           dispute.complainant?._id?.equals?.(userId);
+      const isComplainant = idsEqual(dispute.complainant?._id, userId);
       const isRespondent = Array.isArray(dispute.respondent) && 
-                          dispute.respondent.some(r => 
-                            r._id?.toString() === userId?.toString() || 
-                            r._id?.equals?.(userId)
-                          );
+                          dispute.respondent.some(r => idsEqual(r._id, userId));
 
       if (!isComplainant && !isRespondent) {
         throw new Error('Only dispute parties can escalate a dispute');
@@ -442,9 +472,7 @@ class DisputeService {
    */
   static async getDisputeStats(userId) {
     try {
-      const userObjectId = mongoose.Types.ObjectId.isValid(userId) 
-        ? new mongoose.Types.ObjectId(userId) 
-        : userId;
+      const userObjectId = normalizeId(userId) || userId;
 
       const userDisputes = await Dispute.find({
         $or: [
@@ -472,13 +500,9 @@ class DisputeService {
         stats.byStatus[dispute.status] = (stats.byStatus[dispute.status] || 0) + 1;
         stats.byStage[dispute.currentStage] = (stats.byStage[dispute.currentStage] || 0) + 1;
 
-        const isComplainant = dispute.complainant?._id?.toString() === userId?.toString() ||
-                             dispute.complainant?._id?.equals?.(userId);
+        const isComplainant = idsEqual(dispute.complainant?._id, userId);
         const isRespondent = Array.isArray(dispute.respondent) && 
-                            dispute.respondent.some(r => 
-                              r._id?.toString() === userId?.toString() || 
-                              r._id?.equals?.(userId)
-                            );
+                            dispute.respondent.some(r => idsEqual(r._id, userId));
 
         if (isComplainant) stats.asComplainant++;
         if (isRespondent) stats.asRespondent++;
@@ -509,15 +533,14 @@ class DisputeService {
    */
   static async resolveRespondent(respondentId, eventId = null) {
     try {
-      const normalizeId = (id) =>
-        mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
+      // Use database-agnostic ID utility (imported at top)
 
       const respondentObjId = normalizeId(respondentId);
       if (!respondentObjId) {
         return null;
       }
 
-      const rStr = respondentObjId.toString();
+      const rStr = idToString(respondentObjId);
 
       // 1) Try to get from EnhancedUser (platform users)
       try {
@@ -559,7 +582,7 @@ class DisputeService {
               // Check manual speakers
               if (eventDoc.speakers.manualSpeakers) {
                 const manualSpeaker = eventDoc.speakers.manualSpeakers.find(
-                  s => s._id?.toString() === rStr
+                  s => idToString(s._id) === rStr
                 );
                 if (manualSpeaker) {
                   const name = manualSpeaker.name || `${manualSpeaker.firstName || ''} ${manualSpeaker.lastName || ''}`.trim();
@@ -575,9 +598,9 @@ class DisputeService {
               // Check platform speakers
               if (eventDoc.speakers.platformSpeakers) {
                 const platformSpeaker = eventDoc.speakers.platformSpeakers.find(
-                  s => s._id?.toString() === rStr || 
-                       s.userId?.toString() === rStr ||
-                       s.speakerId?.toString() === rStr
+                  s => idToString(s._id) === rStr || 
+                       idToString(s.userId) === rStr ||
+                       idToString(s.speakerId) === rStr
                 );
                 if (platformSpeaker) {
                   const name = platformSpeaker.name || `${platformSpeaker.firstName || ''} ${platformSpeaker.lastName || ''}`.trim();
@@ -593,7 +616,7 @@ class DisputeService {
             // Handle old schema format: speakers[] (array)
             else if (Array.isArray(eventDoc.speakers)) {
               const speaker = eventDoc.speakers.find(
-                s => s._id?.toString() === rStr || s.userId?.toString() === rStr
+                s => idToString(s._id) === rStr || idToString(s.userId) === rStr
               );
               if (speaker) {
                 const name = speaker.name || `${speaker.firstName || ''} ${speaker.lastName || ''}`.trim();
@@ -618,9 +641,9 @@ class DisputeService {
             }).lean();
 
             if (reg) {
-              const participant = reg.registrant?.userId?.toString() === rStr
+              const participant = idToString(reg.registrant?.userId) === rStr
                 ? reg.registrant
-                : reg.extras?.find(e => e.userId?.toString() === rStr);
+                : reg.extras?.find(e => idToString(e.userId) === rStr);
 
               if (participant) {
                 return {

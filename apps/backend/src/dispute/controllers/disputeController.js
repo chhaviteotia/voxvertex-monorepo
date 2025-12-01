@@ -1,6 +1,6 @@
 import DisputeService from '../services/dispute.service.js';
-import UserService from '../../auth/services/user.service.js';
 import EnhancedUser from '../../auth/models/enhancedUser.js';
+import UserService from '../../auth/services/user.service.js';
 
 /**
  * Dispute Controller - Request handlers for dispute operations
@@ -27,12 +27,29 @@ export const createDispute = async (req, res) => {
       });
     }
 
+    // Fetch full user data to get firstName and lastName
+    const user = await EnhancedUser.findById(req.user._id).select('firstName lastName email').lean();
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
     const complainantData = {
       _id: req.user._id,
-      firstName: req.user.firstName,
-      lastName: req.user.lastName,
-      email: req.user.email
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || req.user.email || ''
     };
+
+    // Validate required fields
+    if (!complainantData.firstName || !complainantData.lastName) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User profile incomplete. Please update your profile with first name and last name.' 
+      });
+    }
 
     const {
       title,
@@ -96,9 +113,16 @@ export const createDispute = async (req, res) => {
     });
   } catch (error) {
     console.error('Create dispute error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      errors: error.errors
+    });
     res.status(500).json({ 
       success: false, 
-      message: error.message || 'Error creating dispute' 
+      message: error.message || 'Error creating dispute',
+      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
     });
   }
 };
