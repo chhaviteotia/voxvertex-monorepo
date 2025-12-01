@@ -6,6 +6,7 @@ import { baseApi } from "./api/baseApi";
 // Import APIs to ensure endpoints are injected
 import "./api/privacyApi";
 import "./api/accountApi";
+import "./api/bookingApi";
 
 export const store = configureStore({
   reducer: {

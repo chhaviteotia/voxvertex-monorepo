@@ -143,8 +143,15 @@ export const authorizeRoles = (...roles) => {
       });
     }
 
-    const userRole = req.user.role?.toLowerCase();
-    const normalizedRoles = roles.map(role => role.toLowerCase());
+    const userRole = req.user.role;
+    if (!userRole || typeof userRole !== 'string') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid user role'
+      });
+    }
+    const normalizedUserRole = userRole.toLowerCase();
+    const normalizedRoles = roles.map(role => typeof role === 'string' ? role.toLowerCase() : String(role).toLowerCase());
     
     // Normalize role names (organizer vs organiszer)
     const roleMap = {
@@ -155,9 +162,9 @@ export const authorizeRoles = (...roles) => {
       'admin': 'admin'
     };
 
-    const normalizedUserRole = roleMap[userRole] || userRole;
+    const finalUserRole = roleMap[normalizedUserRole] || normalizedUserRole;
 
-    if (!normalizedRoles.includes(normalizedUserRole)) {
+    if (!normalizedRoles.includes(finalUserRole)) {
       return res.status(403).json({
         success: false,
         message: `Access denied. Required roles: ${roles.join(', ')}`

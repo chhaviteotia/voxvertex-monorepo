@@ -11,6 +11,7 @@ import availabilityRoutes from './availability/routes/availabilityRoutes.js';
 import disputeRoutes from './dispute/routes/disputeRoutes.js';
 import eventRoutes from './event/routes/eventRoutes.js';
 import documentRoutes from './document/routes/documentRoutes.js';
+import bookingRoutes from './booking/routes/bookingRoutes.js';
 import connectDB from './configs/dbConnect.js';
 import { connectCloudinary } from './configs/cloudinary.config.js';
 
@@ -56,6 +57,7 @@ app.use('/api/availability', availabilityRoutes);
 app.use('/api/dispute', disputeRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/document', documentRoutes);
+app.use('/api/booking', bookingRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
