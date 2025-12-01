@@ -129,10 +129,8 @@ export default function ProfilePageContent({ role }: ProfilePageContentProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-between gap-5 px-0 py-5">
-      <div className="w-full max-w-6xl mx-auto space-y-5">
-        {allSections.map(renderSection)}
-      </div>
-    </div>
+    <main className="flex flex-col items-center justify-between gap-5 px-0 sm:px-1 md:px-2">
+      {allSections.map(renderSection)}
+    </main>
   );
 }

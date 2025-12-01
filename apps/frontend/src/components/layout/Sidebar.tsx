@@ -76,7 +76,7 @@ const Sidebar = () => {
       case "organizer":
         return "/events";
       case "participant":
-        return "/participant/events";
+        return "/events";
       default:
         return "/events";
     }
@@ -110,11 +110,7 @@ const Sidebar = () => {
     icon: <CalendarDays />,
     label: "Events",
     href: getEventsRedirect(),
-    active:
-      currentPath === "/events" ||
-      currentPath === "/participant/events" ||
-      currentPath.startsWith("/events") ||
-      currentPath.startsWith("/participant/events"),
+    active: currentPath === "/events" || currentPath.startsWith("/events/"),
   };
 
   const disputeItem = {

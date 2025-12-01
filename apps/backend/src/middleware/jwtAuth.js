@@ -129,3 +129,42 @@ export const authenticateJWT = async (req, res, next) => {
   }
 };
 
+/**
+ * Role-based authorization middleware
+ * Checks if user has one of the required roles
+ * @param {...String} roles - Required roles (organizer, speaker, participant, admin)
+ */
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const userRole = req.user.role?.toLowerCase();
+    const normalizedRoles = roles.map(role => role.toLowerCase());
+    
+    // Normalize role names (organizer vs organiszer)
+    const roleMap = {
+      'organiser': 'organizer',
+      'organizer': 'organizer',
+      'speaker': 'speaker',
+      'participant': 'participant',
+      'admin': 'admin'
+    };
+
+    const normalizedUserRole = roleMap[userRole] || userRole;
+
+    if (!normalizedRoles.includes(normalizedUserRole)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. Required roles: ${roles.join(', ')}`
+      });
+    }
+
+    next();
+  };
+};
+
